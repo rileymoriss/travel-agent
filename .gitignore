@@ -24,3 +24,6 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Agent scratch/planning files
+.agents_tmp/
