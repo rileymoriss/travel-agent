@@ -12,8 +12,11 @@ the codebase.
 travel-agent/
 ├── app.py                 # CLI entry point (temporary interface)
 ├── travel_agent/           # Core application package
-│   ├── core.py              # Interface-agnostic application logic (e.g. weather forecasting)
-│   └── sources/             # Data-fetching modules (food, books, POIs, weather, etc.)
+│   ├── core.py              # Interface-agnostic application logic (weather, food, etc.)
+│   └── sources/             # Data-fetching modules
+│       ├── weather.py         # Open-Meteo geocoding + forecast HTTP calls
+│       ├── llm.py             # Claude API calls for food recommendations
+│       └── images.py          # Wikipedia image lookups
 ├── tests/                  # Unit tests
 ├── requirements.txt
 ├── requirements-dev.txt    # Adds pytest for running the test suite
@@ -67,6 +70,24 @@ You can also request an explicit date range (max ~16 days):
 
 ```bash
 python app.py "San Francisco" --weather --start-date 2026-09-10 --end-date 2026-09-12
+```
+
+### Quintessential foods
+
+Add `--food` to see up to 5 quintessential foods for a city, each with a
+recommended restaurant and (best-effort) a representative image. This
+feature uses the Claude API and **requires an `ANTHROPIC_API_KEY`**:
+
+1. Get a key at <https://console.anthropic.com/>.
+2. Add it to your local `.env` file (never commit this key or paste it
+   into chat):
+
+   ```
+   ANTHROPIC_API_KEY=your_real_key_here
+   ```
+
+```bash
+python app.py "Tokyo" --food
 ```
 
 More features (personalized recommendations, additional data sources, and

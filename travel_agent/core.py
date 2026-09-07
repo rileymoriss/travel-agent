@@ -8,7 +8,14 @@ defined here, rather than duplicating logic in the interface layer.
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
+from travel_agent.sources import images as images_source
+from travel_agent.sources import llm as llm_source
 from travel_agent.sources import weather as weather_source
+
+# Maximum number of quintessential foods returned per city, enforced
+# defensively here even though the LLM prompt already asks for at most
+# this many.
+MAX_QUINTESSENTIAL_FOODS = 5
 
 DATE_FORMAT = "%Y-%m-%d"
 
@@ -38,6 +45,15 @@ class WeatherDay:
     avg_temp_9am_9pm_c: float
     condition: str
     rain_chance: str
+
+
+@dataclass
+class FoodItem:
+    """A single quintessential food recommendation for a city."""
+
+    name: str
+    restaurant: str
+    image_url: str = None
 
 
 def get_welcome_message(city: str) -> str:
@@ -159,3 +175,37 @@ def get_weekly_weather(city: str, start_date=None, end_date=None) -> list:
         )
 
     return results
+
+
+def get_quintessential_foods(city: str) -> list:
+    """Get up to 5 quintessential foods for a city, each with a recommended
+    restaurant and a best-effort representative image.
+
+    Args:
+        city: Name of the city to look up.
+
+    Returns:
+        A list of `FoodItem` objects (0-5 items). An empty list is
+        returned if the LLM legitimately provides no usable
+        recommendations, rather than raising.
+
+    Raises:
+        travel_agent.sources.llm.LLMLookupError: if the API key is
+            missing, the request fails, or the response cannot be
+            parsed/validated as expected.
+    """
+    raw_items = llm_source.generate_food_recommendations(city)
+    raw_items = raw_items[:MAX_QUINTESSENTIAL_FOODS]
+
+    foods = []
+    for entry in raw_items:
+        image_url = images_source.fetch_food_image(entry["food"])
+        foods.append(
+            FoodItem(
+                name=entry["food"],
+                restaurant=entry["restaurant"],
+                image_url=image_url,
+            )
+        )
+
+    return foods
