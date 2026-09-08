@@ -11,7 +11,9 @@ package.
 ```
 travel-agent/
 ├── app.py                 # CLI entry point (temporary interface)
-├── webapp.py               # Web entry point (FastAPI app, run via uvicorn)
+├── webapp.py               # Web entry point (FastAPI app; opens a browser when run directly)
+├── run.sh                  # Double-click launcher (Linux/macOS): bootstraps venv + runs webapp.py
+├── run.bat                 # Double-click launcher (Windows): same as run.sh
 ├── travel_agent/           # Core application package
 │   ├── core.py              # Interface-agnostic application logic (weather, food, books)
 │   ├── preferences.py        # Loads preferences.json (allergies, favorite genres, etc.)
@@ -173,6 +175,32 @@ quintessential books sections independently (each loads and can fail on
 its own, so a slow/missing-API-key food or books lookup never blocks the
 weather section).
 
+### Quickest way to run it (double-click)
+
+- **Linux (e.g. Fedora):** double-click `run.sh`, or run `./run.sh` from
+  a terminal.
+- **Windows:** double-click `run.bat`.
+
+On first run, the script creates a local `venv/`, installs
+`requirements.txt` into it, and copies `.env.example` to `.env` if one
+doesn't already exist — no manual `pip install` step required (this may
+take a minute the first time; subsequent runs are fast). It then starts
+the server and automatically opens the page in your default browser.
+
+The server runs in the foreground of that same terminal/console window:
+closing the window, or pressing Ctrl+C, stops it. There's no
+background/daemon mode, PID file, or separate stop script — if the
+window is open, the server is running.
+
+> **Linux double-click note:** GNOME Files (Nautilus, Fedora's default
+> file manager) doesn't execute `.sh` scripts on a plain double-click
+> by default. If double-clicking `run.sh` does nothing or opens it as
+> text, either choose **Run in Terminal** from the prompt it shows, or
+> right-click the file → Properties → Permissions → enable "Allow
+> executing file as program" first.
+
+### Manual way to run it
+
 Install dependencies (already covered by `requirements.txt`), then run
 the server with `uvicorn`:
 
@@ -180,22 +208,23 @@ the server with `uvicorn`:
 uvicorn webapp:app --reload
 ```
 
-or, for a quick convenience run (reads `PORT` from the environment,
-defaulting to 8000, and does not auto-reload):
+or, for a run that also auto-opens your browser (reads `PORT` from the
+environment, defaulting to 8000):
 
 ```bash
 python webapp.py
 ```
 
-Then open <http://localhost:8000> in a browser and enter a city.
+Then open <http://localhost:8000> in a browser and enter a city (if it
+wasn't opened for you automatically).
 
 Relevant environment variables (set in `.env`, same as the CLI):
 
 - `ANTHROPIC_API_KEY` — required for the food/books sections; if unset,
   those sections show an error state while weather still loads normally.
-- `PORT` — optional, only used by the `python webapp.py` convenience
-  path (defaults to 8000). When running `uvicorn` directly, pick the
-  port with `--port` instead.
+- `PORT` — optional, only used by the `python webapp.py` / `run.sh` /
+  `run.bat` path (defaults to 8000). When running `uvicorn` directly,
+  pick the port with `--port` instead.
 
 The web UI is a thin layer over the same `travel_agent` package used by
 the CLI (`travel_agent/core.py`, `travel_agent/sources/`) — it exposes
