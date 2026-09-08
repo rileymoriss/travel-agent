@@ -18,7 +18,10 @@ import anthropic
 # "Active" (current, non-legacy) against Anthropic's published model
 # list/deprecations table as of implementation time.
 MODEL = "claude-sonnet-5"
-MAX_TOKENS = 1024
+# Headroom for 5 items with longer, preference-driven descriptions;
+# paired with tighter prompt wording below to keep per-item usage
+# predictable, plus the stop_reason check in _call_claude as a backstop.
+MAX_TOKENS = 2048
 
 FOOD_PROMPT_TEMPLATE = (
     "List up to 5 of the most quintessential foods to try in {city}. "
@@ -42,7 +45,7 @@ BOOK_PROMPT_TEMPLATE = (
     "Respond with ONLY a JSON array, no prose, no markdown code fences, "
     "in exactly this shape:\n"
     '[{{"title": "<book title>", "author": "<author name>", '
-    '"description": "<1-2 sentence description>"}}, ...]'
+    '"description": "<1 concise sentence description>"}}, ...]'
 )
 
 
@@ -137,6 +140,12 @@ def _call_claude(prompt: str) -> str:
         )
     except anthropic.APIError as exc:
         raise LLMLookupError(f"Claude API request failed: {exc}") from exc
+
+    if message.stop_reason == "max_tokens":
+        raise LLMLookupError(
+            "Response was truncated before completing — try shortening "
+            "preferences.json notes or requesting fewer items."
+        )
     return _extract_text(message)
 
 

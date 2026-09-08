@@ -45,7 +45,7 @@ body {
   font-family: var(--font-mono);
   color: var(--color-text);
   background-color: var(--color-bg);
-  max-width: 720px;
+  max-width: 1080px;
   margin: 2rem auto;
   padding: 0 1rem;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -150,10 +150,24 @@ h1, h2 {
   min-height: 1.25rem;
 }
 
-.cards {
+.explore-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 2fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.explore-column {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .explore-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .card {
@@ -172,15 +186,6 @@ h1, h2 {
   color: var(--color-text);
 }
 
-.section-body ul {
-  margin: 0;
-  padding-left: 1.25rem;
-}
-
-.section-body li {
-  margin-bottom: 0.5rem;
-}
-
 .section-body[data-state="idle"] {
   color: var(--color-text-muted);
 }
@@ -191,4 +196,131 @@ h1, h2 {
 
 .section-body[data-state="error"] {
   color: var(--color-warn);
+}
+
+/* Weather: a vertical list of day rows, one per forecast day. */
+
+.weather-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.weather-day {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.weather-day:last-child {
+  border-bottom: none;
+}
+
+.weather-day-icon {
+  flex: 0 0 auto;
+  font-size: 1.5rem;
+  line-height: 1;
+  width: 1.75rem;
+  text-align: center;
+}
+
+.weather-day-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.weather-day-date {
+  font-weight: 600;
+}
+
+.weather-day-temps {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.rain-badge {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.rain-badge[data-level="low"] {
+  background-color: var(--color-sage);
+}
+
+.rain-badge[data-level="medium"] {
+  background-color: var(--color-sand);
+}
+
+.rain-badge[data-level="high"] {
+  background-color: var(--color-warn);
+}
+
+/* Food/Books: a "media object" list — a fixed-size thumbnail (or
+   placeholder) acting as a bullet marker, with text filling the rest
+   of the row. Shared by both sections. */
+
+.media-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.media-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.media-thumb {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.media-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg);
+}
+
+.media-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.media-title {
+  font-weight: 600;
+}
+
+.media-subtitle {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.media-description {
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
 }

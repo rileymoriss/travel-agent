@@ -36,21 +36,25 @@
 
   <p id="welcome-message"></p>
 
-  <div class="cards">
-    <section id="weather-section" class="card">
-      <h2>Weather</h2>
-      <div class="section-body" data-state="idle">Enter a city to see the forecast.</div>
-    </section>
+  <div class="explore-layout">
+    <div class="explore-column explore-column-weather">
+      <section id="weather-section" class="card">
+        <h2>Weather</h2>
+        <div class="section-body" data-state="idle">Enter a city to see the forecast.</div>
+      </section>
+    </div>
 
-    <section id="food-section" class="card">
-      <h2>Quintessential Foods</h2>
-      <div class="section-body" data-state="idle">Enter a city to see food recommendations.</div>
-    </section>
+    <div class="explore-column explore-column-lists">
+      <section id="food-section" class="card">
+        <h2>Quintessential Foods</h2>
+        <div class="section-body" data-state="idle">Enter a city to see food recommendations.</div>
+      </section>
 
-    <section id="books-section" class="card">
-      <h2>Quintessential Books</h2>
-      <div class="section-body" data-state="idle">Enter a city to see book recommendations.</div>
-    </section>
+      <section id="books-section" class="card">
+        <h2>Quintessential Books</h2>
+        <div class="section-body" data-state="idle">Enter a city to see book recommendations.</div>
+      </section>
+    </div>
   </div>
 
   <script src="/static/app.js"></script>

@@ -43,6 +43,51 @@ async function fetchJson(url) {
   return data;
 }
 
+// Display-only condition -> icon lookup. `core.py`'s `condition` strings
+// (see `sources/weather.py`'s WMO code descriptions) are presentation-
+// agnostic by design, so this mapping lives entirely in the frontend.
+const CONDITION_ICONS = {
+  "Clear sky": "\u2600\ufe0f",
+  "Mainly clear": "\ud83c\udf24\ufe0f",
+  "Partly cloudy": "\u26c5",
+  "Overcast": "\u2601\ufe0f",
+  "Fog": "\ud83c\udf2b\ufe0f",
+  "Depositing rime fog": "\ud83c\udf2b\ufe0f",
+  "Light drizzle": "\ud83c\udf26\ufe0f",
+  "Moderate drizzle": "\ud83c\udf26\ufe0f",
+  "Dense drizzle": "\ud83c\udf26\ufe0f",
+  "Light freezing drizzle": "\ud83c\udf28\ufe0f",
+  "Dense freezing drizzle": "\ud83c\udf28\ufe0f",
+  "Slight rain": "\ud83c\udf27\ufe0f",
+  "Moderate rain": "\ud83c\udf27\ufe0f",
+  "Heavy rain": "\ud83c\udf27\ufe0f",
+  "Light freezing rain": "\ud83c\udf28\ufe0f",
+  "Heavy freezing rain": "\ud83c\udf28\ufe0f",
+  "Slight snow fall": "\ud83c\udf28\ufe0f",
+  "Moderate snow fall": "\ud83c\udf28\ufe0f",
+  "Heavy snow fall": "\ud83c\udf28\ufe0f",
+  "Snow grains": "\ud83c\udf28\ufe0f",
+  "Slight rain showers": "\ud83c\udf27\ufe0f",
+  "Moderate rain showers": "\ud83c\udf27\ufe0f",
+  "Violent rain showers": "\ud83c\udf27\ufe0f",
+  "Slight snow showers": "\ud83c\udf28\ufe0f",
+  "Heavy snow showers": "\ud83c\udf28\ufe0f",
+  "Thunderstorm": "\u26c8\ufe0f",
+  "Thunderstorm with slight hail": "\u26c8\ufe0f",
+  "Thunderstorm with heavy hail": "\u26c8\ufe0f",
+};
+const DEFAULT_CONDITION_ICON = "\ud83c\udf24\ufe0f";
+
+function conditionIcon(condition) {
+  return CONDITION_ICONS[condition] || DEFAULT_CONDITION_ICON;
+}
+
+// "Low"/"Medium"/"High"/"Unknown" -> rain-badge color token.
+function rainLevel(rainChance) {
+  const level = (rainChance || "").toLowerCase();
+  return level === "low" || level === "medium" || level === "high" ? level : "medium";
+}
+
 function renderWeather(el, data) {
   el.dataset.state = "loaded";
   if (!data.days.length) {
@@ -51,50 +96,130 @@ function renderWeather(el, data) {
   }
   el.innerHTML = "";
   const list = document.createElement("ul");
+  list.className = "weather-list";
   for (const day of data.days) {
     const item = document.createElement("li");
-    const avg =
-      day.avg_temp_9am_9pm_c !== null && day.avg_temp_9am_9pm_c !== undefined
-        ? `${day.avg_temp_9am_9pm_c.toFixed(1)}\u00b0C`
-        : "N/A";
-    item.textContent =
-      `${day.date}: High ${day.high_temp_c}\u00b0C / Low ${day.low_temp_c}\u00b0C, ` +
-      `Avg 9am-9pm ${avg}, ${day.condition}, Rain chance: ${day.rain_chance}`;
+    item.className = "weather-day";
+
+    const icon = document.createElement("span");
+    icon.className = "weather-day-icon";
+    icon.textContent = conditionIcon(day.condition);
+    icon.setAttribute("aria-hidden", "true");
+    item.appendChild(icon);
+
+    const main = document.createElement("div");
+    main.className = "weather-day-main";
+
+    const dateEl = document.createElement("span");
+    dateEl.className = "weather-day-date";
+    dateEl.textContent = day.date;
+    main.appendChild(dateEl);
+
+    const temps = document.createElement("span");
+    temps.className = "weather-day-temps";
+    temps.textContent = `${day.condition} \u2014 High ${day.high_temp_c}\u00b0C / Low ${day.low_temp_c}\u00b0C`;
+    main.appendChild(temps);
+
+    item.appendChild(main);
+
+    const badge = document.createElement("span");
+    badge.className = "rain-badge";
+    badge.dataset.level = rainLevel(day.rain_chance);
+    badge.textContent = `Rain: ${day.rain_chance}`;
+    item.appendChild(badge);
+
     list.appendChild(item);
   }
   el.appendChild(list);
 }
 
-function renderFood(el, data) {
+function renderMediaList(el, items, buildItem, emptyMessage) {
   el.dataset.state = "loaded";
-  if (!data.items.length) {
-    el.textContent = "No food recommendations available.";
+  if (!items.length) {
+    el.textContent = emptyMessage;
     return;
   }
   el.innerHTML = "";
   const list = document.createElement("ul");
-  for (const item of data.items) {
-    const li = document.createElement("li");
-    li.textContent = `${item.name} — ${item.restaurant}`;
-    list.appendChild(li);
+  list.className = "media-list";
+  for (const data of items) {
+    list.appendChild(buildItem(data));
   }
   el.appendChild(list);
 }
 
+function buildMediaThumb(imageUrl, altText, placeholderIcon) {
+  if (imageUrl) {
+    const img = document.createElement("img");
+    img.className = "media-thumb";
+    img.src = imageUrl;
+    img.alt = altText;
+    img.loading = "lazy";
+    return img;
+  }
+  const placeholder = document.createElement("div");
+  placeholder.className = "media-thumb media-thumb-placeholder";
+  placeholder.textContent = placeholderIcon;
+  placeholder.setAttribute("aria-hidden", "true");
+  return placeholder;
+}
+
+function renderFood(el, data) {
+  renderMediaList(
+    el,
+    data.items,
+    (item) => {
+      const li = document.createElement("li");
+      li.className = "media-item";
+      li.appendChild(buildMediaThumb(item.image_url, item.name, "\ud83c\udf74"));
+
+      const body = document.createElement("div");
+      body.className = "media-body";
+      const title = document.createElement("div");
+      title.className = "media-title";
+      title.textContent = item.name;
+      body.appendChild(title);
+      const subtitle = document.createElement("div");
+      subtitle.className = "media-subtitle";
+      subtitle.textContent = item.restaurant;
+      body.appendChild(subtitle);
+      li.appendChild(body);
+
+      return li;
+    },
+    "No food recommendations available."
+  );
+}
+
 function renderBooks(el, data) {
-  el.dataset.state = "loaded";
-  if (!data.items.length) {
-    el.textContent = "No book recommendations available.";
-    return;
-  }
-  el.innerHTML = "";
-  const list = document.createElement("ul");
-  for (const item of data.items) {
-    const li = document.createElement("li");
-    li.textContent = `${item.title} by ${item.author} — ${item.description}`;
-    list.appendChild(li);
-  }
-  el.appendChild(list);
+  renderMediaList(
+    el,
+    data.items,
+    (item) => {
+      const li = document.createElement("li");
+      li.className = "media-item";
+      li.appendChild(buildMediaThumb(item.cover_url, item.title, "\ud83d\udcda"));
+
+      const body = document.createElement("div");
+      body.className = "media-body";
+      const title = document.createElement("div");
+      title.className = "media-title";
+      title.textContent = item.title;
+      body.appendChild(title);
+      const subtitle = document.createElement("div");
+      subtitle.className = "media-subtitle";
+      subtitle.textContent = item.author;
+      body.appendChild(subtitle);
+      const description = document.createElement("div");
+      description.className = "media-description";
+      description.textContent = item.description;
+      body.appendChild(description);
+      li.appendChild(body);
+
+      return li;
+    },
+    "No book recommendations available."
+  );
 }
 
 async function loadWelcome(city) {

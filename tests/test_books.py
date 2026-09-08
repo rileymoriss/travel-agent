@@ -59,8 +59,10 @@ def test_parse_book_items_rejects_missing_description_key():
         )
 
 
-def _make_fake_message(text: str):
-    return SimpleNamespace(content=[SimpleNamespace(type="text", text=text)])
+def _make_fake_message(text: str, stop_reason: str = "end_turn"):
+    return SimpleNamespace(
+        content=[SimpleNamespace(type="text", text=text)], stop_reason=stop_reason
+    )
 
 
 @patch("travel_agent.sources.llm.anthropic.Anthropic")
@@ -91,6 +93,22 @@ def test_generate_book_recommendations_success(mock_anthropic_cls, monkeypatch):
         }
     ]
     mock_client.messages.create.assert_called_once()
+
+
+@patch("travel_agent.sources.llm.anthropic.Anthropic")
+def test_generate_book_recommendations_truncated_response_raises_clear_error(
+    mock_anthropic_cls, monkeypatch
+):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fake-key")
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = _make_fake_message(
+        '[{"title": "Ulysses", "author": "James Joyce", "description": "Unterm',
+        stop_reason="max_tokens",
+    )
+    mock_anthropic_cls.return_value = mock_client
+
+    with pytest.raises(LLMLookupError, match="truncated"):
+        llm_source.generate_book_recommendations("Dublin")
 
 
 @patch("travel_agent.sources.llm.anthropic.Anthropic")

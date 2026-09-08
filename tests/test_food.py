@@ -66,8 +66,10 @@ def test_parse_food_items_rejects_empty_string_values():
         )
 
 
-def _make_fake_message(text: str):
-    return SimpleNamespace(content=[SimpleNamespace(type="text", text=text)])
+def _make_fake_message(text: str, stop_reason: str = "end_turn"):
+    return SimpleNamespace(
+        content=[SimpleNamespace(type="text", text=text)], stop_reason=stop_reason
+    )
 
 
 @patch("travel_agent.sources.llm.anthropic.Anthropic")
