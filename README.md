@@ -12,11 +12,16 @@ the codebase.
 travel-agent/
 ├── app.py                 # CLI entry point (temporary interface)
 ├── travel_agent/           # Core application package
-│   ├── core.py              # Interface-agnostic application logic (weather, food, etc.)
+│   ├── core.py              # Interface-agnostic application logic (weather, food, books)
+│   ├── preferences.py        # Loads preferences.json (allergies, favorite genres, etc.)
+│   ├── cache.py              # Generic file-based cache for LLM-backed features
 │   └── sources/             # Data-fetching modules
 │       ├── weather.py         # Open-Meteo geocoding + forecast HTTP calls
-│       ├── llm.py             # Claude API calls for food recommendations
-│       └── images.py          # Wikipedia image lookups
+│       ├── llm.py             # Claude API calls for food/book recommendations
+│       ├── images.py          # Wikipedia image lookups (food)
+│       └── covers.py          # Open Library cover lookups (books)
+├── preferences.json        # Your personal food/book preferences (hand-edited, committed)
+├── .cache/                 # Cached LLM results, one JSON file per query (committed)
 ├── tests/                  # Unit tests
 ├── requirements.txt
 ├── requirements-dev.txt    # Adds pytest for running the test suite
@@ -90,8 +95,69 @@ feature uses the Claude API and **requires an `ANTHROPIC_API_KEY`**:
 python app.py "Tokyo" --food
 ```
 
-More features (personalized recommendations, additional data sources, and
-a web interface) are coming soon.
+### Quintessential books
+
+Add `--books` to see up to 5 books meaningfully connected to a city (the
+model may scope individual picks to the city or its country, whichever
+gives better results), each with author, a short description, and a
+best-effort cover image. Also requires `ANTHROPIC_API_KEY` (see above).
+
+```bash
+python app.py "Dublin" --books
+```
+
+### Personalizing results
+
+Both `--food` and `--books` read `preferences.json` at the repo root and
+factor it into the prompt sent to Claude. Edit it directly — it's a
+plain, git-committed JSON file (no secrets), e.g.:
+
+```json
+{
+  "food": {
+    "allergies": ["shellfish"],
+    "dietary_restrictions": ["vegetarian"],
+    "notes": "I love street food"
+  },
+  "books": {
+    "favorite_genres": ["mystery"],
+    "favorite_authors": ["Agatha Christie"],
+    "notes": ""
+  }
+}
+```
+
+A default (empty) file is created automatically if it's missing, so the
+app still works out of the box.
+
+### Caching
+
+`--food` and `--books` results are cached under `.cache/` (one JSON file
+per unique city + relevant preferences combination), so repeat requests
+reuse the prior LLM output by default instead of re-spending tokens.
+There is no expiry — editing `preferences.json` naturally produces a new
+cache entry for affected features, since preferences are part of the
+cache key.
+
+- `--ignore-cache` forces a fresh LLM call for that one invocation
+  (overwriting the cache entry with the new result):
+
+  ```bash
+  python app.py "Tokyo" --food --ignore-cache
+  ```
+
+- `--clear-cache` wipes all cached results and exits immediately (no
+  city required, no LLM call made):
+
+  ```bash
+  python app.py --clear-cache
+  ```
+
+Weather is intentionally never cached — forecasts are date-specific and
+would go stale.
+
+More features (additional data sources and a web interface) are coming
+soon.
 
 ## Running tests
 

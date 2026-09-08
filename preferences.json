@@ -1,0 +1,12 @@
+{
+  "food": {
+    "allergies": [],
+    "dietary_restrictions": [],
+    "notes": ""
+  },
+  "books": {
+    "favorite_genres": [],
+    "favorite_authors": [],
+    "notes": ""
+  }
+}

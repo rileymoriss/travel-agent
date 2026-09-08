@@ -13,9 +13,14 @@ import pytest
 import requests
 
 from travel_agent import core
+from travel_agent.preferences import BookPreferences, FoodPreferences, Preferences
 from travel_agent.sources import images as images_source
 from travel_agent.sources import llm as llm_source
 from travel_agent.sources.llm import LLMLookupError
+
+
+def _empty_preferences():
+    return Preferences(food=FoodPreferences(), books=BookPreferences())
 
 
 # ---------------------------------------------------------------------------
@@ -23,35 +28,42 @@ from travel_agent.sources.llm import LLMLookupError
 # ---------------------------------------------------------------------------
 
 
+FOOD_KEYS = ["food", "restaurant"]
+
+
 def test_parse_food_items_valid_json():
     raw = '[{"food": "Sushi", "restaurant": "Sukiyabashi Jiro"}]'
-    items = llm_source._parse_food_items(raw)
+    items = llm_source._parse_json_array(raw, required_string_keys=FOOD_KEYS)
     assert items == [{"food": "Sushi", "restaurant": "Sukiyabashi Jiro"}]
 
 
 def test_parse_food_items_rejects_malformed_json():
     with pytest.raises(LLMLookupError):
-        llm_source._parse_food_items("not json at all")
+        llm_source._parse_json_array("not json at all", required_string_keys=FOOD_KEYS)
 
 
 def test_parse_food_items_rejects_non_array():
     with pytest.raises(LLMLookupError):
-        llm_source._parse_food_items('{"food": "Sushi", "restaurant": "Jiro"}')
+        llm_source._parse_json_array(
+            '{"food": "Sushi", "restaurant": "Jiro"}', required_string_keys=FOOD_KEYS
+        )
 
 
 def test_parse_food_items_rejects_missing_food_key():
     with pytest.raises(LLMLookupError):
-        llm_source._parse_food_items('[{"restaurant": "Jiro"}]')
+        llm_source._parse_json_array('[{"restaurant": "Jiro"}]', required_string_keys=FOOD_KEYS)
 
 
 def test_parse_food_items_rejects_missing_restaurant_key():
     with pytest.raises(LLMLookupError):
-        llm_source._parse_food_items('[{"food": "Sushi"}]')
+        llm_source._parse_json_array('[{"food": "Sushi"}]', required_string_keys=FOOD_KEYS)
 
 
 def test_parse_food_items_rejects_empty_string_values():
     with pytest.raises(LLMLookupError):
-        llm_source._parse_food_items('[{"food": "  ", "restaurant": "Jiro"}]')
+        llm_source._parse_json_array(
+            '[{"food": "  ", "restaurant": "Jiro"}]', required_string_keys=FOOD_KEYS
+        )
 
 
 def _make_fake_message(text: str):
@@ -144,9 +156,14 @@ def test_fetch_food_image_network_error_returns_none(mock_get):
 # ---------------------------------------------------------------------------
 
 
+@patch("travel_agent.core.cache_module.set_cached")
+@patch("travel_agent.core.cache_module.get_cached", return_value=None)
+@patch("travel_agent.core.preferences_module.load_preferences", side_effect=_empty_preferences)
 @patch("travel_agent.core.images_source.fetch_food_image")
 @patch("travel_agent.core.llm_source.generate_food_recommendations")
-def test_get_quintessential_foods_truncates_to_five(mock_generate, mock_fetch_image):
+def test_get_quintessential_foods_truncates_to_five(
+    mock_generate, mock_fetch_image, mock_load_prefs, mock_get_cached, mock_set_cached
+):
     mock_generate.return_value = [
         {"food": f"Food{i}", "restaurant": f"Restaurant{i}"} for i in range(8)
     ]
@@ -158,9 +175,14 @@ def test_get_quintessential_foods_truncates_to_five(mock_generate, mock_fetch_im
     assert [item.name for item in result] == [f"Food{i}" for i in range(5)]
 
 
+@patch("travel_agent.core.cache_module.set_cached")
+@patch("travel_agent.core.cache_module.get_cached", return_value=None)
+@patch("travel_agent.core.preferences_module.load_preferences", side_effect=_empty_preferences)
 @patch("travel_agent.core.images_source.fetch_food_image")
 @patch("travel_agent.core.llm_source.generate_food_recommendations")
-def test_get_quintessential_foods_missing_image_is_none(mock_generate, mock_fetch_image):
+def test_get_quintessential_foods_missing_image_is_none(
+    mock_generate, mock_fetch_image, mock_load_prefs, mock_get_cached, mock_set_cached
+):
     mock_generate.return_value = [{"food": "Sushi", "restaurant": "Jiro"}]
     mock_fetch_image.return_value = None
 
@@ -172,8 +194,43 @@ def test_get_quintessential_foods_missing_image_is_none(mock_generate, mock_fetc
     assert result[0].image_url is None
 
 
+@patch("travel_agent.core.cache_module.get_cached", return_value=None)
+@patch("travel_agent.core.preferences_module.load_preferences", side_effect=_empty_preferences)
 @patch("travel_agent.core.llm_source.generate_food_recommendations")
-def test_get_quintessential_foods_propagates_llm_error(mock_generate):
+def test_get_quintessential_foods_propagates_llm_error(
+    mock_generate, mock_load_prefs, mock_get_cached
+):
     mock_generate.side_effect = LLMLookupError("no key")
     with pytest.raises(LLMLookupError):
         core.get_quintessential_foods("Tokyo")
+
+
+@patch("travel_agent.core.preferences_module.load_preferences", side_effect=_empty_preferences)
+@patch("travel_agent.core.llm_source.generate_food_recommendations")
+def test_get_quintessential_foods_uses_cache_by_default(mock_generate, mock_load_prefs):
+    cached_payload = [{"name": "Sushi", "restaurant": "Jiro", "image_url": None}]
+    with patch("travel_agent.core.cache_module.get_cached", return_value=cached_payload):
+        result = core.get_quintessential_foods("Tokyo")
+
+    assert len(result) == 1
+    assert result[0].name == "Sushi"
+    mock_generate.assert_not_called()
+
+
+@patch("travel_agent.core.cache_module.set_cached")
+@patch("travel_agent.core.images_source.fetch_food_image", return_value=None)
+@patch("travel_agent.core.preferences_module.load_preferences", side_effect=_empty_preferences)
+@patch("travel_agent.core.llm_source.generate_food_recommendations")
+def test_get_quintessential_foods_ignore_cache_skips_read(
+    mock_generate, mock_load_prefs, mock_fetch_image, mock_set_cached
+):
+    mock_generate.return_value = [{"food": "Ramen", "restaurant": "Ichiran"}]
+    cached_payload = [{"name": "Sushi", "restaurant": "Jiro", "image_url": None}]
+
+    with patch("travel_agent.core.cache_module.get_cached", return_value=cached_payload) as mock_get_cached:
+        result = core.get_quintessential_foods("Tokyo", ignore_cache=True)
+
+    mock_get_cached.assert_not_called()
+    mock_generate.assert_called_once()
+    assert result[0].name == "Ramen"
+    mock_set_cached.assert_called_once()

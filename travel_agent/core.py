@@ -5,17 +5,21 @@ current CLI (app.py) and any future web layer should call into functions
 defined here, rather than duplicating logic in the interface layer.
 """
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 
+from travel_agent import cache as cache_module
+from travel_agent import preferences as preferences_module
+from travel_agent.sources import covers as covers_source
 from travel_agent.sources import images as images_source
 from travel_agent.sources import llm as llm_source
 from travel_agent.sources import weather as weather_source
 
-# Maximum number of quintessential foods returned per city, enforced
-# defensively here even though the LLM prompt already asks for at most
-# this many.
+# Maximum number of quintessential foods/books returned per city,
+# enforced defensively here even though the LLM prompt already asks for
+# at most this many.
 MAX_QUINTESSENTIAL_FOODS = 5
+MAX_QUINTESSENTIAL_BOOKS = 5
 
 DATE_FORMAT = "%Y-%m-%d"
 
@@ -54,6 +58,16 @@ class FoodItem:
     name: str
     restaurant: str
     image_url: str = None
+
+
+@dataclass
+class BookItem:
+    """A single quintessential book recommendation for a city."""
+
+    title: str
+    author: str
+    description: str
+    cover_url: str = None
 
 
 def get_welcome_message(city: str) -> str:
@@ -177,12 +191,17 @@ def get_weekly_weather(city: str, start_date=None, end_date=None) -> list:
     return results
 
 
-def get_quintessential_foods(city: str) -> list:
+def get_quintessential_foods(city: str, ignore_cache: bool = False) -> list:
     """Get up to 5 quintessential foods for a city, each with a recommended
     restaurant and a best-effort representative image.
 
+    Results are cached (keyed by city + the relevant food preferences)
+    so repeat requests reuse prior LLM output by default.
+
     Args:
         city: Name of the city to look up.
+        ignore_cache: If True, skip the cache read and force a fresh LLM
+            call, overwriting any existing cache entry with the result.
 
     Returns:
         A list of `FoodItem` objects (0-5 items). An empty list is
@@ -194,7 +213,21 @@ def get_quintessential_foods(city: str) -> list:
             missing, the request fails, or the response cannot be
             parsed/validated as expected.
     """
-    raw_items = llm_source.generate_food_recommendations(city)
+    prefs = preferences_module.load_preferences()
+    key = cache_module.cache_key(
+        "food",
+        city=city,
+        allergies=prefs.food.allergies,
+        dietary_restrictions=prefs.food.dietary_restrictions,
+        notes=prefs.food.notes,
+    )
+
+    if not ignore_cache:
+        cached = cache_module.get_cached(key)
+        if cached is not None:
+            return [FoodItem(**item) for item in cached]
+
+    raw_items = llm_source.generate_food_recommendations(city, preferences=prefs)
     raw_items = raw_items[:MAX_QUINTESSENTIAL_FOODS]
 
     foods = []
@@ -208,4 +241,60 @@ def get_quintessential_foods(city: str) -> list:
             )
         )
 
+    cache_module.set_cached(key, [asdict(food) for food in foods])
     return foods
+
+
+def get_quintessential_books(city: str, ignore_cache: bool = False) -> list:
+    """Get up to 5 books meaningfully connected to a city, each with an
+    author, short description, and a best-effort cover image.
+
+    Results are cached (keyed by city + the relevant book preferences)
+    so repeat requests reuse prior LLM output by default.
+
+    Args:
+        city: Name of the city to look up.
+        ignore_cache: If True, skip the cache read and force a fresh LLM
+            call, overwriting any existing cache entry with the result.
+
+    Returns:
+        A list of `BookItem` objects (0-5 items). An empty list is
+        returned if the LLM legitimately provides no usable
+        recommendations, rather than raising.
+
+    Raises:
+        travel_agent.sources.llm.LLMLookupError: if the API key is
+            missing, the request fails, or the response cannot be
+            parsed/validated as expected.
+    """
+    prefs = preferences_module.load_preferences()
+    key = cache_module.cache_key(
+        "books",
+        city=city,
+        favorite_genres=prefs.books.favorite_genres,
+        favorite_authors=prefs.books.favorite_authors,
+        notes=prefs.books.notes,
+    )
+
+    if not ignore_cache:
+        cached = cache_module.get_cached(key)
+        if cached is not None:
+            return [BookItem(**item) for item in cached]
+
+    raw_items = llm_source.generate_book_recommendations(city, preferences=prefs)
+    raw_items = raw_items[:MAX_QUINTESSENTIAL_BOOKS]
+
+    books = []
+    for entry in raw_items:
+        cover_url = covers_source.fetch_book_cover(entry["title"], entry["author"])
+        books.append(
+            BookItem(
+                title=entry["title"],
+                author=entry["author"],
+                description=entry["description"],
+                cover_url=cover_url,
+            )
+        )
+
+    cache_module.set_cached(key, [asdict(book) for book in books])
+    return books
