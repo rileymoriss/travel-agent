@@ -1,30 +1,37 @@
 # Travel Agent
 
 A local Python-based travel discovery tool that gives personalized
-recommendations for a city. This project is being built incrementally —
-today it's a simple command-line script, but the structure is designed so
-a web interface (Flask/FastAPI) can be added later without reorganizing
-the codebase.
+recommendations for a city. It's built incrementally, with a
+command-line interface (`app.py`) and a FastAPI-based web UI
+(`webapp.py`) both sitting on top of the same core `travel_agent`
+package.
 
 ## Project structure
 
 ```
 travel-agent/
 ├── app.py                 # CLI entry point (temporary interface)
+├── webapp.py               # Web entry point (FastAPI app, run via uvicorn)
 ├── travel_agent/           # Core application package
 │   ├── core.py              # Interface-agnostic application logic (weather, food, books)
 │   ├── preferences.py        # Loads preferences.json (allergies, favorite genres, etc.)
 │   ├── cache.py              # Generic file-based cache for LLM-backed features
-│   └── sources/             # Data-fetching modules
-│       ├── weather.py         # Open-Meteo geocoding + forecast HTTP calls
-│       ├── llm.py             # Claude API calls for food/book recommendations
-│       ├── images.py          # Wikipedia image lookups (food)
-│       └── covers.py          # Open Library cover lookups (books)
+│   ├── sources/             # Data-fetching modules
+│   │   ├── weather.py         # Open-Meteo geocoding + forecast HTTP calls
+│   │   ├── llm.py             # Claude API calls for food/book recommendations
+│   │   ├── images.py          # Wikipedia image lookups (food)
+│   │   └── covers.py          # Open Library cover lookups (books)
+│   └── web/                 # FastAPI web layer (JSON API + single-page frontend)
+│       ├── app.py              # App factory: static/templates mounting, exception handlers
+│       ├── api.py              # /api/* JSON endpoints, thin wrappers around core.py
+│       ├── schemas.py          # Pydantic response models
+│       ├── templates/          # Jinja2 page shell (index.html)
+│       └── static/             # Vanilla JS/CSS driving the page (app.js, styles.css)
 ├── preferences.json        # Your personal food/book preferences (hand-edited, committed)
 ├── .cache/                 # Cached LLM results, one JSON file per query (committed)
 ├── tests/                  # Unit tests
 ├── requirements.txt
-├── requirements-dev.txt    # Adds pytest for running the test suite
+├── requirements-dev.txt    # Adds pytest + httpx for running the test suite
 ├── .env.example
 └── .gitignore
 ```
@@ -156,8 +163,47 @@ cache key.
 Weather is intentionally never cached — forecasts are date-specific and
 would go stale.
 
-More features (additional data sources and a web interface) are coming
-soon.
+More features (additional data sources) are coming soon.
+
+## Web UI
+
+In addition to the CLI, a FastAPI-based web UI is available: a single
+page where entering a city populates weather, quintessential foods, and
+quintessential books sections independently (each loads and can fail on
+its own, so a slow/missing-API-key food or books lookup never blocks the
+weather section).
+
+Install dependencies (already covered by `requirements.txt`), then run
+the server with `uvicorn`:
+
+```bash
+uvicorn webapp:app --reload
+```
+
+or, for a quick convenience run (reads `PORT` from the environment,
+defaulting to 8000, and does not auto-reload):
+
+```bash
+python webapp.py
+```
+
+Then open <http://localhost:8000> in a browser and enter a city.
+
+Relevant environment variables (set in `.env`, same as the CLI):
+
+- `ANTHROPIC_API_KEY` — required for the food/books sections; if unset,
+  those sections show an error state while weather still loads normally.
+- `PORT` — optional, only used by the `python webapp.py` convenience
+  path (defaults to 8000). When running `uvicorn` directly, pick the
+  port with `--port` instead.
+
+The web UI is a thin layer over the same `travel_agent` package used by
+the CLI (`travel_agent/core.py`, `travel_agent/sources/`) — it exposes
+`GET /api/welcome`, `GET /api/weather`, `GET /api/food`, and
+`GET /api/books` as JSON endpoints, consumed by the single page via
+`fetch`. As with the CLI, preferences and cache management remain
+CLI/manual-file-only for now (edit `preferences.json` directly, or use
+`python app.py --clear-cache`) — there's no settings page in the UI yet.
 
 ## Running tests
 

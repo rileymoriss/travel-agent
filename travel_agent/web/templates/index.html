@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Travel Discovery Tool</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <h1>Travel Discovery Tool</h1>
+
+  <form id="explore-form">
+    <label for="city-input">City</label>
+    <input type="text" id="city-input" name="city" placeholder="e.g. Tokyo" required>
+    <button type="submit">Explore</button>
+  </form>
+
+  <p id="welcome-message"></p>
+
+  <section id="weather-section">
+    <h2>Weather</h2>
+    <div class="section-body" data-state="idle">Enter a city to see the forecast.</div>
+  </section>
+
+  <section id="food-section">
+    <h2>Quintessential Foods</h2>
+    <div class="section-body" data-state="idle">Enter a city to see food recommendations.</div>
+  </section>
+
+  <section id="books-section">
+    <h2>Quintessential Books</h2>
+    <div class="section-body" data-state="idle">Enter a city to see book recommendations.</div>
+  </section>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

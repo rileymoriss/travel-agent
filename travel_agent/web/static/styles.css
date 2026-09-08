@@ -1,0 +1,26 @@
+/* Bare-minimum layout only; a proper design pass will replace this. */
+
+body {
+  font-family: system-ui, sans-serif;
+  max-width: 640px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+#explore-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+section {
+  margin-bottom: 1.5rem;
+}
+
+.section-body[data-state="error"] {
+  color: #b00020;
+}
+
+.section-body[data-state="loading"] {
+  color: #666;
+}

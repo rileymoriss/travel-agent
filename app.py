@@ -9,9 +9,8 @@ Usage:
     python app.py "Tokyo" --food --ignore-cache
     python app.py --clear-cache
 
-This is a temporary interface. Once the core logic is fleshed out, a web
-layer (Flask/FastAPI) will be added on top of the same `travel_agent`
-package without needing to restructure this project.
+A FastAPI-based web UI (`webapp.py`) is also available on top of the
+same `travel_agent` package; see README.md for details.
 """
 
 import argparse
