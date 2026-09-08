@@ -1,26 +1,194 @@
-/* Bare-minimum layout only; a proper design pass will replace this. */
+/* Design system: "Sage & Sand" palette, Geist Mono typography, moderate
+   rounding. All component rules reference the tokens below rather than
+   hardcoding colors, so themes stay in sync with a single source of
+   truth. */
+
+:root,
+[data-theme="light"] {
+  --color-bg: #F7F2EA;
+  --color-surface: #FFFFFF;
+  --color-border: #E3DACB;
+  --color-text: #33312C;
+  --color-text-muted: #746F65;
+  --color-sage: #94AC8C;
+  --color-sage-hover: #7C9574;
+  --color-sand: #E8C39E;
+  --color-sand-hover: #DBAF80;
+  --color-warn: #C97B63;
+}
+
+[data-theme="dark"] {
+  --color-bg: #23211D;
+  --color-surface: #2C2A25;
+  --color-border: #423E35;
+  --color-text: #EDE7DA;
+  --color-text-muted: #A79F8F;
+  --color-sage: #8AA982;
+  --color-sage-hover: #75946C;
+  --color-sand: #D9AE7E;
+  --color-sand-hover: #C79968;
+  --color-warn: #D68F77;
+}
+
+:root {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 body {
-  font-family: system-ui, sans-serif;
-  max-width: 640px;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  max-width: 720px;
   margin: 2rem auto;
   padding: 0 1rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2 {
+  font-weight: 600;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.app-header h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+#theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+}
+
+#theme-toggle:hover {
+  border-color: var(--color-sage);
+}
+
+.icon-moon {
+  display: none;
+}
+
+[data-theme="dark"] .icon-sun {
+  display: none;
+}
+
+[data-theme="dark"] .icon-moon {
+  display: inline;
 }
 
 #explore-form {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
-section {
-  margin-bottom: 1.5rem;
+#explore-form label {
+  color: var(--color-text-muted);
 }
 
-.section-body[data-state="error"] {
-  color: #b00020;
+#city-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+}
+
+#city-input:focus {
+  outline: none;
+  border-color: var(--color-sage);
+}
+
+#explore-form button,
+.section-body button {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text);
+  background-color: var(--color-sand);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+#explore-form button:hover,
+.section-body button:hover {
+  background-color: var(--color-sand-hover);
+}
+
+#welcome-message {
+  color: var(--color-text-muted);
+  min-height: 1.25rem;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+}
+
+.card h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.section-body {
+  color: var(--color-text);
+}
+
+.section-body ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.section-body li {
+  margin-bottom: 0.5rem;
+}
+
+.section-body[data-state="idle"] {
+  color: var(--color-text-muted);
 }
 
 .section-body[data-state="loading"] {
-  color: #666;
+  color: var(--color-text-muted);
+}
+
+.section-body[data-state="error"] {
+  color: var(--color-warn);
 }

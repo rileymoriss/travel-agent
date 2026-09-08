@@ -2,11 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Travel Discovery Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
+  <script>
+    // Resolve and apply the theme before first paint to avoid a
+    // flash of the wrong theme. Explicit user choice (localStorage)
+    // takes precedence over the OS/browser preference.
+    (function () {
+      var stored = localStorage.getItem("theme");
+      var theme = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
 </head>
 <body>
-  <h1>Travel Discovery Tool</h1>
+  <header class="app-header">
+    <h1>Travel Discovery Tool</h1>
+    <button id="theme-toggle" type="button" aria-label="Toggle light/dark theme">
+      <span class="icon-sun" aria-hidden="true">☀</span>
+      <span class="icon-moon" aria-hidden="true">☾</span>
+    </button>
+  </header>
 
   <form id="explore-form">
     <label for="city-input">City</label>
@@ -16,20 +36,22 @@
 
   <p id="welcome-message"></p>
 
-  <section id="weather-section">
-    <h2>Weather</h2>
-    <div class="section-body" data-state="idle">Enter a city to see the forecast.</div>
-  </section>
+  <div class="cards">
+    <section id="weather-section" class="card">
+      <h2>Weather</h2>
+      <div class="section-body" data-state="idle">Enter a city to see the forecast.</div>
+    </section>
 
-  <section id="food-section">
-    <h2>Quintessential Foods</h2>
-    <div class="section-body" data-state="idle">Enter a city to see food recommendations.</div>
-  </section>
+    <section id="food-section" class="card">
+      <h2>Quintessential Foods</h2>
+      <div class="section-body" data-state="idle">Enter a city to see food recommendations.</div>
+    </section>
 
-  <section id="books-section">
-    <h2>Quintessential Books</h2>
-    <div class="section-body" data-state="idle">Enter a city to see book recommendations.</div>
-  </section>
+    <section id="books-section" class="card">
+      <h2>Quintessential Books</h2>
+      <div class="section-body" data-state="idle">Enter a city to see book recommendations.</div>
+    </section>
+  </div>
 
   <script src="/static/app.js"></script>
 </body>

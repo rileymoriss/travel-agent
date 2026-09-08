@@ -2,6 +2,18 @@
 // fetched and rendered independently so a slow/failed food or books
 // call never blocks the weather section (or each other).
 
+const themeToggle = document.getElementById("theme-toggle");
+
+// The initial theme is already applied by the inline <script> in
+// <head> (before first paint); this handler only manages toggling
+// and persisting the choice thereafter.
+themeToggle.addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme");
+  const next = current === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem("theme", next);
+});
+
 const form = document.getElementById("explore-form");
 const cityInput = document.getElementById("city-input");
 const welcomeMessage = document.getElementById("welcome-message");
