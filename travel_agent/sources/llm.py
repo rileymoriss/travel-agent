@@ -13,7 +13,11 @@ import os
 
 import anthropic
 
-MODEL = "claude-3-5-sonnet-20241022"
+# Rolling alias (not a dated snapshot) so this doesn't silently break
+# again when Anthropic retires a specific dated model version. Verified
+# "Active" (current, non-legacy) against Anthropic's published model
+# list/deprecations table as of implementation time.
+MODEL = "claude-sonnet-5"
 MAX_TOKENS = 1024
 
 FOOD_PROMPT_TEMPLATE = (
